@@ -1,0 +1,19 @@
+# Node & Frontend
+node_modules/
+.next/
+out/
+build/
+.env*.local
+
+# Python & Backend
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+chroma_db/
+final_report.md
+
+# Environment Variables (CRITICAL)
+.env

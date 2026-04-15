@@ -1,0 +1,13 @@
+langchain-google-genai
+langchain-groq
+langchain-community
+langgraph
+pydantic
+aiohttp
+beautifulsoup4
+chromadb
+pypdf
+python-dotenv
+fastapi
+uvicorn
+python-multipart
