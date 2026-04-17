@@ -30,19 +30,18 @@ Follow these steps to run the architecture locally on your machine.
 * API Keys: Google Gemini & Serper.dev
 
 ### 1. Clone the Repository
-```bash
-git clone [https://github.com/YOUR_USERNAME/Agentic-AI-Research-Assistant.git](https://github.com/YOUR_USERNAME/Agentic-AI-Research-Assistant.git)
-cd Agentic-AI-Research-Assistant
+
+```git clone https://github.com/shreyasparangi/Agentic-AI-Research-Assistant.git```
+```cd Agentic-AI-Research-Assistant```
 2. Backend Setup (FastAPI & LangGraph)
 Open a terminal in the backend/ directory:
-
 Bash
 # Create a virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
+```python -m venv venv```
+```source venv/bin/activate  # On Windows use: venv\Scripts\activate```
 
 # Install dependencies
-pip install -r requirements.txt
+```pip install -r requirements.txt```
 
 # Set up your environment variables
 # Create a .env file and add:
@@ -50,16 +49,13 @@ pip install -r requirements.txt
 # SERPER_API_KEY="your_serper_key"
 
 # Start the Python server
-python -m uvicorn api:app --reload
+```python -m uvicorn api:app --reload```
 3. Frontend Setup (Next.js)
 Open a second terminal in the frontend/ directory:
-
-Bash
 # Install Node modules
-npm install
-
+```npm install```
 # Start the development server
-npm run dev
+```npm run dev```
 4. Access the Application
 Open your browser and navigate to http://localhost:3000. The frontend will automatically route requests to the backend running on port 8000.
 
