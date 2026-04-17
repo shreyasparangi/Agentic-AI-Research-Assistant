@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 import Link from 'next/link';
 import { BrainCircuit, UploadCloud, Send, Loader2, CheckCircle2, AlertTriangle, FileText, LayoutDashboard, Library, Download, ChevronDown, Zap } from 'lucide-react';
 
-const API_URL = "http://127.0.0.1:8000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 export default function AgenticDashboard() {
   const [query, setQuery] = useState('');

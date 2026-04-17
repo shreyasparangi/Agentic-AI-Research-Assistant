@@ -51,7 +51,7 @@ def gap_analyzer_node(state: dict):
     
     print(f"🔍 [Gap Analyzer] Evaluating research state for: '{current_section}'")
     
-    # Utilizing the FAST model (Groq Llama-3.1-8B) for this node because
+    # Utilizing Gemini 2.5 Flash for this node because
     # binary decision-making and gap extraction requires low latency, not deep reasoning.
     router = LLMRouter()
     llm = router.fast_model
@@ -77,7 +77,7 @@ def gap_analyzer_node(state: dict):
             "history": research_history
         })
     except Exception as e:
-        # SAFETY HATCH: If Groq forgets a closing tag, do not crash!
+        # SAFETY HATCH: If the model returns malformed structured output, do not crash.
         # Instead, assume we have enough data and force it to synthesize the final report.
         print(f"⚠️ [Gap Analyzer] LLM parsing glitch detected. Deploying safety hatch.")
         evaluation = KnowledgeGapOutput(research_complete=True, outstanding_gaps=[])

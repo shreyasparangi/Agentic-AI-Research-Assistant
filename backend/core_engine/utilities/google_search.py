@@ -13,6 +13,8 @@ import aiohttp
 from bs4 import BeautifulSoup
 from langchain_core.tools import tool
 
+from core_engine.utilities.cache_manager import get_cached_content, save_to_cache
+
 # Hard limit on scraped characters to prevent overwhelming the LLM's context window.
 # 8000 characters is roughly 1500-2000 tokens, which is the optimal reading size.
 CONTENT_LENGTH_LIMIT = 8000 
@@ -35,6 +37,11 @@ async def fetch_and_scrape(session: aiohttp.ClientSession, url: str) -> str:
     if any(ext in url.lower() for ext in RESTRICTED_EXTENSIONS):
         return f"[Skipped {url}: Restricted file type]"
 
+    cached_content = get_cached_content(url)
+    if cached_content:
+        print(f"⚡ [Web Searcher] Cache hit for: {url}")
+        return cached_content
+
     try:
         # 8-second timeout ensures a single slow website doesn't hang the entire LangGraph worker
         async with session.get(url, timeout=8) as response:
@@ -56,7 +63,9 @@ async def fetch_and_scrape(session: aiohttp.ClientSession, url: str) -> str:
             
             # Enforce the context window safety limit
             content = extracted_text[:CONTENT_LENGTH_LIMIT]
-            return f"\n--- SOURCE: {url} ---\n{content}\n"
+            formatted_content = f"\n--- SOURCE: {url} ---\n{content}\n"
+            save_to_cache(url, formatted_content)
+            return formatted_content
             
     except Exception as e:
         return f"[Error fetching {url}: {str(e)}]"

@@ -22,6 +22,7 @@ from core_engine.nodes.synthesizer import synthesizer_node
 from core_engine.nodes.actions.web_searcher import execute_search_action
 from core_engine.nodes.actions.web_scraper import execute_scrape_action
 from core_engine.nodes.actions.rag_retriever import execute_rag_action
+from core_engine.utilities.arxiv_search import arxiv_researcher
 
 
 # --- 1. THE TOOL EXECUTION NODE ---
@@ -49,6 +50,10 @@ async def execute_tools_node(state: ResearchState):
             target_url = task.entity_website if task.entity_website else task.query
             result = await execute_scrape_action(gap=task.gap, target_url=target_url)
             return f"--- WEB SCRAPE RESULTS FOR '{target_url}' ---\n{result}"
+
+        elif task.tool_name == "arxiv_researcher":
+            result = await arxiv_researcher.ainvoke({"query": task.query})
+            return f"--- ARXIV RESEARCH RESULTS FOR '{task.query}' ---\n{result}"
         
         return ""
 

@@ -1,7 +1,7 @@
 """
 LLM Router Module
 =================
-This module acts as the central intelligence hub for the Agentic AI Research System.
+This module acts as the central Google Gemini 2.5 model hub for the Agentic AI Research System.
 """
 
 import os
@@ -21,7 +21,7 @@ if not GEMINI_API_KEY:
 
 class LLMRouter:
     """
-    A custom routing engine that assigns specialized LLMs to specific agentic tasks.
+    A custom routing engine that assigns specialized Gemini 2.5 models to specific agentic tasks.
     """
     
     def __init__(self):
@@ -35,10 +35,10 @@ class LLMRouter:
             api_key=GEMINI_API_KEY
         )
 
-        # 2. Main Model: Gemini 2.5 Pro
-        # Handles the heavy lifting for reading massive text chunks and drafting the final report.
+        # 2. Main Model: Gemini 2.5 Flash
+        # Switched to Flash for EXPO SAFE MODE (1 Million TPM limit)
         self.main_model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash",
             temperature=0.2, 
             api_key=GEMINI_API_KEY
         )
@@ -48,6 +48,13 @@ class LLMRouter:
         self.reasoning_model = ChatGoogleGenerativeAI(
             model="gemini-2.5-pro",
             temperature=0.4, 
+            api_key=GEMINI_API_KEY
+        )
+        # 4. Semantic Routing Model: Gemini 2.5 Flash (Zero Temp)
+        # Downgraded to Flash to bypass the strict 2 RPM Free Tier limit
+        self.routing_model = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            temperature=0.0, 
             api_key=GEMINI_API_KEY
         )
 

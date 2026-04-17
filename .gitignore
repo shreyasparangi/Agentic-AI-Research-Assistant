@@ -13,6 +13,7 @@ venv/
 .venv/
 env/
 chroma_db/
+scraper_cache.db
 final_report.md
 
 # Environment Variables (CRITICAL)

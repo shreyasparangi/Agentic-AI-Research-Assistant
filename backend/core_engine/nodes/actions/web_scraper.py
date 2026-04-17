@@ -71,7 +71,7 @@ async def execute_scrape_action(gap: str, target_url: str) -> str:
     print(f"🧠 [Action: Scraper] Reading {len(raw_text)} characters of scraped site data...")
 
     # 2. Initialize the Fast Model (The "Filter")
-    # We use Llama 3.1 8B here because parsing text is a low-reasoning, high-speed task.
+    # We use Gemini 2.5 Flash here because parsing text is a low-reasoning, high-speed task.
     router = LLMRouter()
     llm = router.fast_model
     

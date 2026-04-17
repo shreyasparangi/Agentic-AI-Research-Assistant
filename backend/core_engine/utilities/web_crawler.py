@@ -12,6 +12,8 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
 from langchain_core.tools import tool
 
+from core_engine.utilities.cache_manager import get_cached_content, save_to_cache
+
 # Architecture Constraints:
 # Limit extraction to keep the AI from getting overwhelmed (Context Window Protection)
 CONTENT_LENGTH_LIMIT = 5000
@@ -73,6 +75,11 @@ async def web_crawler(starting_url: str) -> str:
     if not starting_url.startswith(('http://', 'https://')):
         starting_url = 'https://' + starting_url
 
+    cached_content = get_cached_content(starting_url)
+    if cached_content:
+        print(f"⚡ [Web Crawler] Cache hit for: {starting_url}")
+        return cached_content
+
     print(f"🕸️ [Web Crawler] Initiating targeted crawl on: {starting_url}")
 
     # Initialize data structures for the Breadth-First Search (BFS) algorithm
@@ -105,4 +112,6 @@ async def web_crawler(starting_url: str) -> str:
         return f"Failed to extract readable text from {starting_url}"
 
     # Compile the results into a single string payload for the Action Node
-    return "\n".join(all_text_results)
+    final_output = "\n".join(all_text_results)
+    save_to_cache(starting_url, final_output)
+    return final_output

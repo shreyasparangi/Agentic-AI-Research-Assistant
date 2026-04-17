@@ -1,5 +1,4 @@
 langchain-google-genai
-langchain-groq
 langchain-community
 langgraph
 pydantic
@@ -11,3 +10,4 @@ python-dotenv
 fastapi
 uvicorn
 python-multipart
+werkzeug

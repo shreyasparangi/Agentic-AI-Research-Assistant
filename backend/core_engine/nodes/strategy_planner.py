@@ -48,7 +48,7 @@ def strategy_planner_node(state: dict):
     
     router = LLMRouter()
     
-    # We use the Reasoning Model (Groq Llama-3.3-70B) here because generating a 
+    # We use Gemini 2.5 Pro as the reasoning model here because generating a
     # comprehensive, logically ordered outline requires high cognitive capability.
     llm = router.reasoning_model
     
