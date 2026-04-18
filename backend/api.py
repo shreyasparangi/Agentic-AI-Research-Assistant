@@ -63,7 +63,7 @@ def format_sse_event(event: str, payload: dict) -> str:
 
 
 async def research_event_stream(request: ResearchRequest):
-    """Yield clean progress updates and a final report as SSE chunks."""
+    """Yield clean progress updates, telemetry, and a final report as SSE chunks."""
     try:
         async for update in orchestrator.stream_research(request.query, request.mode):
             event_type = update["event"]
@@ -71,11 +71,20 @@ async def research_event_stream(request: ResearchRequest):
 
             if event_type == "progress":
                 yield format_sse_event("progress", {"message": sanitize_status(data)})
+            
+            elif event_type == "telemetry":
+                # NEW: Catch the telemetry event, parse the JSON string back to a dict, 
+                # and safely route it to the frontend dashboard.
+                yield format_sse_event("telemetry", json.loads(data))
+                
             elif event_type == "complete":
                 yield format_sse_event("complete", {"report": data})
+                
             else:
+                # Only trigger an error if the event type is completely unknown
                 yield format_sse_event("error", {"message": sanitize_status(data)})
                 return
+                
     except Exception as e:
         yield format_sse_event("error", {"message": sanitize_status(str(e))})
 

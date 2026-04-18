@@ -18,7 +18,6 @@ from core_engine.utilities.progress import sanitize_status
 class ResearchOrchestrator:
     """
     Manages the lifecycle and execution of LangGraph research loops.
-    Handles dynamic scaling, state initialization, and concurrency throttling.
     """
     
     def __init__(self):
@@ -69,13 +68,12 @@ class ResearchOrchestrator:
             task = asyncio.create_task(task_coroutine)
             tasks.append(task)
             
-        print("\n⚡ [Orchestrator] Firing throttled research loops...\n")
+        print("\n⚡ [Orchestrator] Firing parallel research loops...\n")
         
         try:
             completed_sections = await asyncio.gather(*tasks)
         except Exception as e:
             print(f"\n🚨 [Orchestrator] CRITICAL WORKER FAILURE: {str(e)}")
-            print("🛑 [Orchestrator] Emergency Abort! Cancelling all other background workers to protect API billing...")
             for t in tasks:
                 if not t.done():
                     t.cancel()
@@ -88,7 +86,6 @@ class ResearchOrchestrator:
         final_report += "---\n\n"
         final_report += "\n\n".join(completed_sections)
         
-        print("✅ [Orchestrator] Deep Research Architecture Execution Complete!\n")
         return final_report
     
     async def run_single_research(self, query: str, progress_queue: asyncio.Queue | None = None) -> str:
@@ -111,8 +108,6 @@ class ResearchOrchestrator:
             progress_queue.put_nowait(sanitize_status("[Orchestrator] Starting single-agent iterative research."))
 
         final_state = await self.worker_graph.ainvoke(initial_state)
-        
-        print("\n✅ [Orchestrator] Single Iterative Research Complete!\n")
         return final_state["completed_sections"][0]
 
     async def stream_research(self, query: str, mode: str):
@@ -121,7 +116,6 @@ class ResearchOrchestrator:
         """
         progress_queue: asyncio.Queue = asyncio.Queue()
         
-        # 1. Start the Telemetry Trackers
         start_time = time.time()
         cache_hits = 0
         api_calls = 0
@@ -139,7 +133,7 @@ class ResearchOrchestrator:
                 message = await asyncio.wait_for(progress_queue.get(), timeout=0.25)
                 clean_msg = sanitize_status(message)
                 
-                # 2. Dynamically Track Network vs Cache
+                # Dynamically Track Network vs Cache
                 if "Cache hit" in clean_msg:
                     cache_hits += 1
                 elif "Searching" in clean_msg or "Evaluating" in clean_msg or "Querying" in clean_msg:
@@ -147,9 +141,8 @@ class ResearchOrchestrator:
                 
                 yield {"event": "progress", "data": clean_msg}
                 
-                # 3. GLOBAL THROTTLE: Protects the Gemini 15 RPM Free Tier limit
-                if "Searching" in clean_msg or "Evaluating" in clean_msg or "Querying" in clean_msg:
-                    await asyncio.sleep(4.5)
+                # REMOVED: The 4.5 second asyncio.sleep() throttle has been deleted! 
+                # The agent will now stream to the UI as fast as the LLM generates tokens.
                     
             except asyncio.TimeoutError:
                 continue
@@ -165,7 +158,7 @@ class ResearchOrchestrator:
         try:
             report = await research_task
             
-            # 4. CALCULATE FINAL TELEMETRY
+            # CALCULATE FINAL TELEMETRY
             execution_time = round(time.time() - start_time, 2)
             tokens_saved = cache_hits * 4500 # Estimate of tokens saved by bypassing the scrape
             
@@ -176,7 +169,6 @@ class ResearchOrchestrator:
                 "tokens_saved": tokens_saved
             })
             
-            # Emit Telemetry Event, THEN the complete report
             yield {"event": "telemetry", "data": telemetry_payload}
             yield {"event": "complete", "data": report}
             

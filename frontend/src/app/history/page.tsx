@@ -47,7 +47,7 @@ export default function HistoryPage() {
       <aside className="w-80 bg-slate-900 border-r border-slate-800 p-6 flex flex-col relative z-20">
         <div className="flex items-center gap-3 mb-10">
           <BrainCircuit className="w-8 h-8 text-blue-500" />
-          <h1 className="text-2xl font-bold text-white tracking-tight">Agentic AI</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Research Assistant</h1>
         </div>
 
         <div className="mb-10 flex flex-col gap-2">
