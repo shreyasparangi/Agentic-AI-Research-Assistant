@@ -13,6 +13,7 @@ from datetime import datetime
 from langchain_core.prompts import ChatPromptTemplate
 
 from core_engine.llm_router import LLMRouter
+from core_engine.utilities.progress import emit_progress
 
 # --- 1. PYDANTIC SCHEMAS ---
 class ReportPlanSection(BaseModel):
@@ -44,6 +45,7 @@ Guidelines:
 def strategy_planner_node(state: dict):
     """Generates the execution plan and sections array for parallel processing."""
     user_query = state.get("query")
+    emit_progress(state, "[Strategy Planner] Designing a structured research plan.")
     print(f"🧠 [Planner Node] Breaking down query: '{user_query}'")
     
     router = LLMRouter()
@@ -66,6 +68,8 @@ def strategy_planner_node(state: dict):
     
     print(f"✅ [Planner Node] Generated outline with {len(plan.report_outline)} sections.")
     
+    emit_progress(state, f"[Strategy Planner] Created a research plan with {len(plan.report_outline)} sections.")
+
     return {
         "report_plan": plan,
         # Initialize an empty array to aggregate the asynchronous worker outputs

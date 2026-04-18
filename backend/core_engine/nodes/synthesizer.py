@@ -11,6 +11,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 from core_engine.llm_router import LLMRouter
+from core_engine.utilities.progress import emit_progress
 
 # --- 1. THE SYSTEM PROMPT ---
 SYNTHESIZER_PROMPT = """
@@ -39,6 +40,7 @@ def synthesizer_node(state: dict):
     section_title = state.get("current_section_title", "General Research")
     section_question = state.get("current_section", "Summarize findings")
     findings = state.get("research_history", "No findings provided.")
+    emit_progress(state, f"[Synthesizer] Drafting the final Markdown report for {section_title}.")
     
     print(f"✍️ [Synthesizer] Writing report section: '{section_title}'...")
     
@@ -69,6 +71,7 @@ def synthesizer_node(state: dict):
     
     completed_sections = state.get("completed_sections", [])
     completed_sections.append(final_draft)
+    emit_progress(state, f"[Synthesizer] Finished writing {section_title}.")
     
     return {
         "completed_sections": completed_sections,

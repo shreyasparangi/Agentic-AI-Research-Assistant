@@ -23,6 +23,7 @@ from core_engine.nodes.actions.web_searcher import execute_search_action
 from core_engine.nodes.actions.web_scraper import execute_scrape_action
 from core_engine.nodes.actions.rag_retriever import execute_rag_action
 from core_engine.utilities.arxiv_search import arxiv_researcher
+from core_engine.utilities.progress import emit_progress
 
 
 # --- 1. THE TOOL EXECUTION NODE ---
@@ -34,25 +35,34 @@ async def execute_tools_node(state: ResearchState):
     Executes pending tool requests concurrently using asyncio.
     """
     tasks = state.get("pending_tool_tasks", [])
+    emit_progress(state, f"[Tool Executor] Running {len(tasks)} research tool task(s) in parallel.")
     print(f"⚙️ [Tool Executor] Firing {len(tasks)} tools concurrently...")
     
     # Define an internal async wrapper to process each task
     async def run_task(task):
         if task.tool_name == "web_searcher":
+            emit_progress(state, f"[Web Searcher] Searching the web for {task.query}.")
             result = await execute_search_action(gap=task.gap, query=task.query)
+            emit_progress(state, f"[Web Searcher] Finished reviewing web results for {task.query}.")
             return f"--- WEB SEARCH RESULTS FOR '{task.query}' ---\n{result}"
             
         elif task.tool_name == "rag_retriever":
+            emit_progress(state, f"[RAG Retriever] Querying the local document knowledge base for {task.query}.")
             result = await execute_rag_action(gap=task.gap, query=task.query)
+            emit_progress(state, f"[RAG Retriever] Finished retrieving local context for {task.query}.")
             return f"--- RAG DATABASE RESULTS FOR '{task.query}' ---\n{result}"
             
         elif task.tool_name == "web_crawler":
             target_url = task.entity_website if task.entity_website else task.query
+            emit_progress(state, f"[Web Scraper] Crawling targeted website content from {target_url}.")
             result = await execute_scrape_action(gap=task.gap, target_url=target_url)
+            emit_progress(state, f"[Web Scraper] Finished extracting targeted website content from {target_url}.")
             return f"--- WEB SCRAPE RESULTS FOR '{target_url}' ---\n{result}"
 
         elif task.tool_name == "arxiv_researcher":
+            emit_progress(state, f"[arXiv Researcher] Searching recent academic papers for {task.query}.")
             result = await arxiv_researcher.ainvoke({"query": task.query})
+            emit_progress(state, f"[arXiv Researcher] Finished reviewing academic paper metadata for {task.query}.")
             return f"--- ARXIV RESEARCH RESULTS FOR '{task.query}' ---\n{result}"
         
         return ""

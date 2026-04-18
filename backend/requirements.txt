@@ -1,4 +1,5 @@
 langchain-google-genai
+langchain-anthropic
 langchain-community
 langgraph
 pydantic
@@ -11,3 +12,4 @@ fastapi
 uvicorn
 python-multipart
 werkzeug
+typing-extensions

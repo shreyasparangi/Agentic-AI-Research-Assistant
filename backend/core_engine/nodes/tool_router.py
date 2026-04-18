@@ -13,6 +13,7 @@ from datetime import datetime
 from langchain_core.prompts import ChatPromptTemplate
 
 from core_engine.llm_router import LLMRouter
+from core_engine.utilities.progress import emit_progress
 
 # --- 1. PYDANTIC SCHEMAS (The Action Payload Blueprint) ---
 class ToolTask(BaseModel):
@@ -91,6 +92,7 @@ def tool_router_node(state: dict):
     user_query = state.get("query", "")
     current_gaps = state.get("current_gaps", [])
     research_history = state.get("research_history", "")
+    emit_progress(state, "[Tool Router] Selecting the best tools for the current research gaps.")
     
     print(f"🔀 [Tool Router] Routing {len(current_gaps)} gaps to specialized tools...")
     
@@ -121,9 +123,13 @@ def tool_router_node(state: dict):
         print(f"⚠️ [Tool Router] LLM parsing glitch detected. Deploying safety hatch.")
         print(f"[Tool Router] LLM routing failed: {type(e).__name__}: {e}")
         print("[Tool Router] Deploying deterministic fallback plan.")
+        emit_progress(state, "[Tool Router] Structured routing was unavailable. Using a deterministic fallback plan.")
         plan = build_fallback_plan(user_query, current_gaps)
     
     print(f"🛠️ [Tool Router] Selected {len(plan.tasks)} tools to execute.")
+    selected_tools = ", ".join(task.tool_name for task in plan.tasks) or "no external tools"
+    emit_progress(state, f"[Tool Router] Selected {len(plan.tasks)} tool task(s): {selected_tools}.")
+
     for task in plan.tasks:
         print(f"   -> Assigned '{task.tool_name}' with query: '{task.query}'")
     

@@ -9,6 +9,7 @@ circular dependency errors in Python.
 
 import operator
 from typing import TypedDict, Annotated, List, Any
+from typing_extensions import NotRequired
 
 # --- GLOBAL LANGGRAPH STATE ---
 
@@ -39,3 +40,6 @@ class ResearchState(TypedDict):
     
     # 5. Safety Limits: Prevents infinite API loops
     loop_count: int
+
+    # 6. Optional Streaming: Carries progress events to the SSE endpoint
+    progress_queue: NotRequired[Any]

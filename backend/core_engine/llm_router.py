@@ -1,61 +1,62 @@
 """
 LLM Router Module
 =================
-This module acts as the central Google Gemini 2.5 model hub for the Agentic AI Research System.
+Centralized provider for LLM instantiation. 
+Configured for restricted Enterprise/Educational API keys.
 """
 
 import os
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_anthropic import ChatAnthropic
 
-# Load environment variables from the .env file
+# Load environment variables
 load_dotenv()
 
-# --- 1. ENVIRONMENT SETUP ---
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 SEARCH_PROVIDER = os.getenv("SEARCH_PROVIDER", "serper")
 
-# Fail-fast validation
-if not GEMINI_API_KEY:
-    raise ValueError("Missing GEMINI_API_KEY! Please ensure it is in your .env file.")
+if not ANTHROPIC_API_KEY:
+    raise ValueError("Missing ANTHROPIC_API_KEY! Please ensure it is in your .env file.")
 
 class LLMRouter:
     """
-    A custom routing engine that assigns specialized Gemini 2.5 models to specific agentic tasks.
+    A custom routing engine that assigns Claude models to specific agentic tasks.
     """
     
     def __init__(self):
         self.search_provider = SEARCH_PROVIDER
         
-        # 1. Fast Model: Gemini 2.5 Flash
-        # Blisteringly fast. Ideal for gap analysis and scraping.
-        self.fast_model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            temperature=0, 
-            api_key=GEMINI_API_KEY
+        # BRUTE FORCE BYPASS: 
+        # Educational API keys usually only whitelist this specific Sonnet build.
+        # We assign it to every single task to guarantee no 404 errors.
+        safe_model = "claude-3-5-sonnet-20240620"
+        
+        # 1. Fast Model
+        self.fast_model = ChatAnthropic(
+            model=safe_model, 
+            temperature=0,
+            api_key=ANTHROPIC_API_KEY
         )
 
-        # 2. Main Model: Gemini 2.5 Flash
-        # Switched to Flash for EXPO SAFE MODE (1 Million TPM limit)
-        self.main_model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+        # 2. Main Model
+        self.main_model = ChatAnthropic(
+            model=safe_model,
             temperature=0.2, 
-            api_key=GEMINI_API_KEY
+            api_key=ANTHROPIC_API_KEY
         )
 
-        # 3. Reasoning Model: Gemini 2.5 Pro (Higher Temp)
-        # Specifically designed for the Strategy Planner node to brainstorm creative outlines.
-        self.reasoning_model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-pro",
-            temperature=0.4, 
-            api_key=GEMINI_API_KEY
+        # 3. Reasoning Model
+        self.reasoning_model = ChatAnthropic(
+            model=safe_model, 
+            temperature=0,
+            api_key=ANTHROPIC_API_KEY
         )
-        # 4. Semantic Routing Model: Gemini 2.5 Flash (Zero Temp)
-        # Downgraded to Flash to bypass the strict 2 RPM Free Tier limit
-        self.routing_model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+        
+        # 4. Semantic Routing Model
+        self.routing_model = ChatAnthropic(
+            model=safe_model,
             temperature=0.0, 
-            api_key=GEMINI_API_KEY
+            api_key=ANTHROPIC_API_KEY
         )
 
 def create_default_config() -> LLMRouter:

@@ -4,9 +4,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Link from 'next/link';
-import { BrainCircuit, UploadCloud, Send, Loader2, CheckCircle2, AlertTriangle, FileText, LayoutDashboard, Library, Download, ChevronDown, Zap } from 'lucide-react';
+import { BrainCircuit, UploadCloud, Send, Loader2, CheckCircle2, AlertTriangle, FileText, LayoutDashboard, Library, Download, ChevronDown, Zap, Terminal, Timer, Database, Activity, Cpu } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
+type TelemetryData = {
+  execution_time: number;
+  cache_hits: number;
+  api_calls: number;
+  tokens_saved: number;
+};
 
 export default function AgenticDashboard() {
   const [query, setQuery] = useState('');
@@ -15,38 +22,22 @@ export default function AgenticDashboard() {
   const [report, setReport] = useState('');
   const [cleanTitle, setCleanTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingStatus, setLoadingStatus] = useState("Initializing agents...");
+  
+  const [logs, setLogs] = useState<string[]>([]);
+  const logsEndRef = useRef<HTMLDivElement>(null);
+  
+  // --- NEW: Telemetry State ---
+  const [telemetry, setTelemetry] = useState<TelemetryData | null>(null);
+  
   const [uploadStatus, setUploadStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error', message: string }>({ type: 'idle', message: '' });
-
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // --- 1. DYNAMIC LOADING STATUSES ---
-  const statusMessages = [
-    "Initializing agentic workflow...",
-    "Querying strategy planner...",
-    "Searching the web for latest sources...",
-    "Scraping and extracting raw HTML data...",
-    "Evaluating knowledge gaps...",
-    "Cross-referencing local vector database...",
-    "Synthesizing final academic report..."
-  ];
-
   useEffect(() => {
-    if (!isLoading) return;
-    let step = 0;
-    setLoadingStatus(statusMessages[0]);
-    const interval = setInterval(() => {
-      step++;
-      if (step < statusMessages.length) {
-        setLoadingStatus(statusMessages[step]);
-      } else {
-        setLoadingStatus(statusMessages[statusMessages.length - 1]);
-      }
-    }, 3500);
-    return () => clearInterval(interval);
-  }, [isLoading]);
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs]);
 
-  // --- CLICK OUTSIDE DROPDOWN HANDLER ---
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -57,7 +48,6 @@ export default function AgenticDashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [dropdownRef]);
 
-  // --- 2. SAVE TO LOCAL DATABASE SIMULATOR ---
   const saveToHistory = (searchQuery: string, searchMode: string, finalReport: string) => {
     const existingHistory = JSON.parse(localStorage.getItem('agenticHistory') || '[]');
     const newEntry = {
@@ -70,7 +60,6 @@ export default function AgenticDashboard() {
     localStorage.setItem('agenticHistory', JSON.stringify([newEntry, ...existingHistory]));
   };
 
-  // --- 3. DOWNLOAD REPORT FEATURE ---
   const handleDownload = () => {
     const blob = new Blob([`# ${cleanTitle}\n\n${report}`], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -83,32 +72,70 @@ export default function AgenticDashboard() {
     URL.revokeObjectURL(url);
   };
 
-  // --- HANDLERS ---
   const handleResearch = async () => {
     if (!query.trim()) return;
     
     setIsLoading(true);
     setReport('');
+    setTelemetry(null); // Clear previous telemetry
+    setLogs(["[System] Initializing Agentic AI Research Engine..."]);
     setCleanTitle(query);
     
     try {
-      const response = await fetch(`${API_URL}/research`, {
+      const response = await fetch(`${API_URL}/research-stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, mode })
       });
       
-      const data = await response.json();
+      if (!response.body) throw new Error("No readable stream available.");
       
-      if (response.ok) {
-        const cleanedReport = data.report.replace(/^(#\s*)?Research Summary:?\s*/i, '').trim();
-        setReport(cleanedReport);
-        saveToHistory(query, mode, cleanedReport);
-      } else {
-        setReport(`**Error:** ${data.detail}`);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const blocks = buffer.split('\n\n');
+        buffer = blocks.pop() || "";
+        
+        for (const block of blocks) {
+          if (!block.trim()) continue;
+          
+          const eventMatch = block.match(/^event:\s*(.*)/m);
+          const dataMatch = block.match(/^data:\s*(.*)/m);
+          
+          if (eventMatch && dataMatch) {
+            const event = eventMatch[1].trim();
+            const dataStr = dataMatch[1].trim();
+            
+            try {
+              const data = JSON.parse(dataStr);
+              
+              if (event === 'progress') {
+                setLogs(prev => [...prev, data.message]);
+              } else if (event === 'telemetry') {
+                // --- CATCH TELEMETRY ---
+                setTelemetry(data);
+              } else if (event === 'complete') {
+                const cleanedReport = data.report.replace(/^(#\s*)?Research Summary:?\s*/i, '').trim();
+                setReport(cleanedReport);
+                saveToHistory(query, mode, cleanedReport);
+              } else if (event === 'error') {
+                setLogs(prev => [...prev, `[Fatal Error] ${data.message}`]);
+                setReport(`**Agentic Error:** ${data.message}`);
+              }
+            } catch (err) {
+              console.error("Failed to parse SSE JSON:", err);
+            }
+          }
+        }
       }
     } catch (error) {
-      setReport(`**Connection Error:** Make sure the FastAPI backend is running on port 8000.`);
+      setReport(`**Connection Error:** Make sure the FastAPI backend is running and the streaming endpoint is accessible.`);
     } finally {
       setIsLoading(false);
       setQuery(''); 
@@ -195,18 +222,82 @@ export default function AgenticDashboard() {
             )}
 
             {isLoading && (
-              <div className="flex flex-col items-center justify-center mt-32 animate-in fade-in duration-300">
-                <div className="relative mb-8">
-                  <div className="absolute inset-0 bg-blue-500 blur-xl opacity-20 rounded-full"></div>
-                  <Loader2 className="w-16 h-16 text-blue-500 animate-spin relative z-10" />
+              <div className="mt-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-blue-500 blur-md opacity-40 rounded-full"></div>
+                    <Loader2 className="w-6 h-6 text-blue-400 animate-spin relative z-10" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white tracking-tight">Agentic Workflow Active</h3>
                 </div>
-                <h3 className="text-2xl font-semibold text-white mb-3">Agents are researching</h3>
-                <p className="text-blue-400 font-medium px-4 py-2 bg-blue-900/20 rounded-lg border border-blue-800/30">
-                  {loadingStatus}
-                </p>
+                
+                <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+                  <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex items-center gap-2">
+                    <Terminal className="w-4 h-4 text-slate-500" />
+                    <span className="text-xs font-mono text-slate-400">langgraph-orchestrator.log</span>
+                  </div>
+                  <div className="p-6 h-80 overflow-y-auto font-mono text-sm flex flex-col gap-2">
+                    {logs.map((log, index) => (
+                      <div 
+                        key={index} 
+                        className={`animate-in fade-in duration-300 ${log.includes('[Fatal Error]') ? 'text-red-400' : log.includes('Cache hit') ? 'text-emerald-400' : 'text-blue-300'}`}
+                      >
+                        <span className="text-slate-600 mr-3">{new Date().toISOString().split('T')[1].slice(0,8)}</span>
+                        {log}
+                      </div>
+                    ))}
+                    <div ref={logsEndRef} />
+                  </div>
+                </div>
               </div>
             )}
 
+            {/* VERCEL-STYLE TELEMETRY DASHBOARD */}
+            {telemetry && report && !isLoading && (
+              <div className="mb-8 grid grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center gap-4">
+                  <div className="p-3 bg-blue-900/20 text-blue-400 rounded-lg">
+                    <Timer className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">Execution Time</div>
+                    <div className="text-xl font-semibold text-white">{telemetry.execution_time}s</div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center gap-4">
+                  <div className="p-3 bg-indigo-900/20 text-indigo-400 rounded-lg">
+                    <Activity className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">API Calls</div>
+                    <div className="text-xl font-semibold text-white">{telemetry.api_calls}</div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center gap-4">
+                  <div className="p-3 bg-emerald-900/20 text-emerald-400 rounded-lg">
+                    <Database className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">Cache Hits</div>
+                    <div className="text-xl font-semibold text-white">{telemetry.cache_hits}</div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center gap-4">
+                  <div className="p-3 bg-amber-900/20 text-amber-400 rounded-lg">
+                    <Cpu className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">Tokens Saved</div>
+                    <div className="text-xl font-semibold text-white">~{telemetry.tokens_saved.toLocaleString()}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* FINAL REPORT */}
             {report && !isLoading && (
               <div className="bg-slate-900 p-10 rounded-2xl border border-slate-800 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-start justify-between border-b border-slate-800 pb-6 mb-6">
@@ -230,7 +321,7 @@ export default function AgenticDashboard() {
           </div>
         </div>
 
-        {/* --- UPGRADED INPUT DOCK --- */}
+        {/* INPUT DOCK */}
         <div className="absolute bottom-0 w-full bg-gradient-to-t from-slate-950 via-slate-950 to-transparent pt-12 pb-8 px-10 z-20">
           <div className="max-w-4xl mx-auto bg-slate-900 border border-slate-700 rounded-2xl p-4 shadow-2xl flex flex-col gap-3 transition-all focus-within:border-blue-500/50 focus-within:shadow-blue-900/20">
             
@@ -248,7 +339,6 @@ export default function AgenticDashboard() {
             
             <div className="flex items-center justify-between border-t border-slate-800 pt-3 mt-1 px-2 relative">
               
-              {/* Custom Dropdown Component */}
               <div className="relative" ref={dropdownRef}>
                 <button 
                   onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)}
@@ -263,7 +353,6 @@ export default function AgenticDashboard() {
                   <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isModeDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Dropdown Menu */}
                 {isModeDropdownOpen && (
                   <div className="absolute bottom-full left-0 mb-2 w-64 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
                     <button 

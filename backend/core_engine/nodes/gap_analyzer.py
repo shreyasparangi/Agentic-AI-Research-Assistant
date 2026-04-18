@@ -2,26 +2,22 @@
 Gap Analyzer Node
 =================
 Acts as the Quality Assurance (QA) gatekeeper for the research loop.
-This node critically evaluates the aggregated `research_history` against the target 
-`current_section` question. It determines whether the agent has sufficient data to synthesize 
-a final answer, or if specific knowledge gaps remain that require further tool execution.
 """
 
+import asyncio
 from pydantic import BaseModel, Field
 from typing import List
 from datetime import datetime
 from langchain_core.prompts import ChatPromptTemplate
 
 from core_engine.llm_router import LLMRouter
+from core_engine.utilities.progress import emit_progress
 
-# --- 1. PYDANTIC SCHEMA (The Deterministic JSON Blueprint) ---
-# Enforcing a strict schema ensures the LLM's output can be safely parsed into 
-# Python booleans and lists, controlling the graph's conditional edges without crashing.
+# --- 1. PYDANTIC SCHEMA ---
 class KnowledgeGapOutput(BaseModel):
     """Output schema enforcing deterministic control flow variables."""
     research_complete: bool = Field(description="True if the research findings are complete enough to write the section, False otherwise")
     outstanding_gaps: List[str] = Field(description="Up to 3 specific knowledge gaps that still need to be addressed")
-
 
 # --- 2. THE SYSTEM PROMPT ---
 GAP_ANALYZER_PROMPT = """
@@ -41,22 +37,24 @@ Your task:
 4. If no, set research_complete to false and identify up to 3 specific knowledge gaps that need to be addressed next.
 """
 
-
 # --- 3. THE LANGGRAPH NODE ---
-def gap_analyzer_node(state: dict):
+# UPGRADE: Converted to an async node to support non-blocking throttles
+async def gap_analyzer_node(state: dict):
     """Evaluates the state memory to dictate the next routing direction."""
     user_query = state.get("query", "Unknown query")
     current_section = state.get("current_section", "Unknown section")
     research_history = state.get("research_history", "No research conducted yet.")
+    emit_progress(state, "[Gap Analyzer] Evaluating research coverage and identifying missing information.")
     
     print(f"🔍 [Gap Analyzer] Evaluating research state for: '{current_section}'")
     
-    # Utilizing Gemini 2.5 Flash for this node because
-    # binary decision-making and gap extraction requires low latency, not deep reasoning.
+    # THROTTLE: Artificially delay execution by 4 seconds to protect the Gemini 15 RPM Free Tier Limit.
+    # This prevents the SQLite cache from triggering a 429 Quota Error on rapid repeat searches.
+    await asyncio.sleep(4)
+    
     router = LLMRouter()
     llm = router.fast_model
     
-    # Bind the schema to guarantee a structured JSON payload
     structured_llm = llm.with_structured_output(KnowledgeGapOutput)
     
     prompt = ChatPromptTemplate.from_messages([
@@ -69,25 +67,28 @@ def gap_analyzer_node(state: dict):
     current_date = datetime.now().strftime("%Y-%m-%d")
     
     try:
-        # Attempt to parse the LLM's structured output
-        evaluation: KnowledgeGapOutput = chain.invoke({
+        # UPGRADE: Switched to asynchronous invocation
+        evaluation: KnowledgeGapOutput = await chain.ainvoke({
             "date": current_date, 
             "query": user_query,
             "section_question": current_section,
             "history": research_history
         })
     except Exception as e:
-        # SAFETY HATCH: If the model returns malformed structured output, do not crash.
-        # Instead, assume we have enough data and force it to synthesize the final report.
         print(f"⚠️ [Gap Analyzer] LLM parsing glitch detected. Deploying safety hatch.")
-        evaluation = KnowledgeGapOutput(research_complete=True, outstanding_gaps=[])
+        # THE FIX: If it glitches, DO NOT quit. Force it to route back to the tools.
+        evaluation = KnowledgeGapOutput(
+            research_complete=False, 
+            outstanding_gaps=[f"Retrieve more detailed sources regarding: {current_section}"]
+        )
         
     if evaluation.research_complete:
+        emit_progress(state, "[Gap Analyzer] Research coverage is sufficient. Preparing the final report.")
         print("✅ [Gap Analyzer] Research complete! Ready to write.")
     else:
+        emit_progress(state, f"[Gap Analyzer] Found {len(evaluation.outstanding_gaps)} knowledge gaps. Selecting the best research tools.")
         print(f"⚠️ [Gap Analyzer] Found {len(evaluation.outstanding_gaps)} missing gaps. Routing back to tools.")
     
-    # Inject the evaluation results back into the global state
     return {
         "research_complete": evaluation.research_complete,
         "current_gaps": evaluation.outstanding_gaps
