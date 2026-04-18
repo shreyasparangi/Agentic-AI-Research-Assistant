@@ -19,3 +19,6 @@ final_report.md
 # Environment Variables (CRITICAL)
 .env
 backend/.tmp/
+
+# Ignore all log files
+*.log
