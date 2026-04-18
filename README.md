@@ -1,45 +1,74 @@
-# 🧠 Agentic AI Research System
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
-![Next.js](https://img.shields.io/badge/Next.js-15.0-black)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-teal)
-![LangGraph](https://img.shields.io/badge/LangGraph-Multi--Agent-orange)
+# 🤖 Agentic AI Research Assistant
 
-An enterprise-grade, multi-agent artificial intelligence research architecture. This system autonomously crawls the web, parses data, cross-references local vector databases (RAG), and synthesizes fully cited academic reports using a Map-Reduce state machine.
+An enterprise-grade, multi-agent AI system designed to autonomously perform deep research, scrape web data, query academic databases, and synthesize comprehensive Markdown reports. 
 
-## ⚡ Features
-* **Dual Execution Modes:** * `Flash Agent`: High-speed iterative reasoning loop for rapid synthesis.
-  * `Deep Parallel`: Asynchronous, concurrent multi-agent architecture (Map-Reduce) for massive, multi-faceted queries.
-* **Concurrent Web Scraping:** Asynchronous HTTP sessions combined with Beautifulsoup HTML parsing.
-* **Smart Context Management:** Auto-compresses 8,000+ character web scrapes to prevent LLM context window collapse.
-* **Local RAG Integration:** Built-in ChromaDB pipeline for ingesting and querying private PDF knowledge bases.
-* **SaaS UI:** Dark-mode Next.js dashboard with dynamic Markdown rendering and a localized 'Research Library'.
+Built with **LangGraph**, **FastAPI**, and **Next.js**, this architecture prioritizes high-concurrency, context-window safety, and cost-efficient API routing.
 
-## 🏗️ Architecture Stack
-* **Frontend:** Next.js, React, Tailwind CSS, Lucide Icons.
-* **Backend:** Python, FastAPI, LangGraph, asyncio.
-* **AI/LLM:** Google Gemini 2.5 Flash (Fast Tasks) & Gemini 2.5 Pro (Deep Reasoning).
-* **Data Retrieval:** Serper API (Google Search), ChromaDB (Local Vector Store).
+## ✨ Core Features
 
-## 🚀 Quick Start
-### 1. Environment Setup
-Create a `.env` file in the `backend/` directory:
-```text
-GEMINI_API_KEY=your_gemini_key_here
-SERPER_API_KEY=your_serper_key_here
+* **Multi-Agent Orchestration (LangGraph):** Utilizes a cyclic graph architecture with a deterministic `Gap Analyzer` and `Tool Router` to autonomously decide when research is complete and when more data is needed.
+* **Concurrent Tool Execution:** Fires multiple web scrapers and database queries simultaneously to reduce O(N) network latency to O(1).
+* **Local Web Caching (SQLite):** Intercepts redundant HTTP requests to dramatically reduce API costs and bypass network latency during high-volume research loops.
+* **Academic Literature Integration:** Features a specialized tool to query the **arXiv API**, pulling peer-reviewed computer science preprints directly into the context window.
+* **Secure Local RAG (ChromaDB):** Safely parses and ingests user-uploaded PDFs into a local vector database for private document interrogation, protected against path-traversal vulnerabilities.
+* **Expo-Safe Rate Limiting:** Exclusively powered by **Google Gemini 2.5 Flash** to leverage the 1 Million TPM (Tokens Per Minute) limit, guaranteeing crash-free presentations and massive context-window processing.
 
-2. Start the Backend
-Open a terminal in the backend/ folder:
+## 🏗️ System Architecture
 
-Bash
-pip install -r requirements.txt
-uvicorn api:app --reload
-3. Start the Frontend
-Open a split terminal in the frontend/ folder:
+1. **Next.js Frontend:** Provides a responsive dashboard for query input, PDF uploading, and rendering the final Markdown report.
+2. **FastAPI Backend:** The asynchronous Python engine managing cross-origin requests and temporary file handling.
+3. **Semantic Router:** A zero-temperature LLM node that maps identified knowledge gaps to specific functional APIs (`web_searcher`, `web_crawler`, `rag_retriever`, `arxiv_researcher`).
+4. **Synthesizer:** The final node that aggregates raw HTML, XML, and PDF embeddings to draft a structured, deeply cited report.
 
-Bash
-npm install
-npm run dev
-Navigate to http://localhost:3000 to launch the dashboard.
+## 🚀 Local Setup Instructions
 
-Built by,
+Follow these steps to run the architecture locally on your machine.
+
+### Prerequisites
+* Python 3.10+
+* Node.js 18+
+* API Keys: Google Gemini & Serper.dev
+
+### 1. Clone the Repository  
+
+
+```git clone https://github.com/shreyasparangi/Agentic-AI-Research-Assistant.git```   
+
+```cd Agentic-AI-Research-Assistant```  
+
+### 2. Backend Setup (FastAPI & LangGraph)  
+Open a terminal in the backend/ directory:  
+Create a virtual environment:  
+```python -m venv venv```
+
+```source venv/bin/activate  # On Windows use: venv\Scripts\activate```  
+
+
+Install dependencies  
+```pip install -r requirements.txt```  
+
+
+Set up your environment variables  
+Create a .env file and add:  
+```GEMINI_API_KEY="your_google_key"```   
+
+```SERPER_API_KEY="your_serper_key"```
+
+Start the Python server
+```python -m uvicorn api:app --reload```  
+
+### 3. Frontend Setup (Next.js)   
+Open a second terminal in the frontend/ directory:   
+Install Node modules   
+
+```npm install```  
+
+Start the development server   
+
+```npm run dev```    
+### 4. Access the Application   
+Open your browser and navigate to http://localhost:3000. The frontend will automatically route requests to the backend running on port 8000.   
+
+👥 Contributors  
+Built by:  
 Shreyas Parangi, 2026
