@@ -15,6 +15,12 @@ type TelemetryData = {
   tokens_saved: number;
 };
 
+// NEW: Object-based log state for permanent timestamps
+interface LogEntry {
+  time: string;
+  message: string;
+}
+
 export default function AgenticDashboard() {
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState('single');
@@ -23,20 +29,21 @@ export default function AgenticDashboard() {
   const [cleanTitle, setCleanTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const [logs, setLogs] = useState<string[]>([]);
+  // NEW: Updated logs state and minimize toggle
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [isLogsMinimized, setIsLogsMinimized] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   
-  // --- NEW: Telemetry State ---
   const [telemetry, setTelemetry] = useState<TelemetryData | null>(null);
   
   const [uploadStatus, setUploadStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error', message: string }>({ type: 'idle', message: '' });
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (logsEndRef.current) {
+    if (logsEndRef.current && !isLogsMinimized) {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [logs]);
+  }, [logs, isLogsMinimized]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -72,13 +79,20 @@ export default function AgenticDashboard() {
     URL.revokeObjectURL(url);
   };
 
+  const getTimeStamp = () => {
+    return new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  };
+
   const handleResearch = async () => {
     if (!query.trim()) return;
     
     setIsLoading(true);
     setReport('');
-    setTelemetry(null); // Clear previous telemetry
-    setLogs(["[System] Initializing Agentic AI Research Engine..."]);
+    setTelemetry(null);
+    setIsLogsMinimized(false); // Auto-expand logs on new search
+    
+    // Lock the starting timestamp
+    setLogs([{ time: getTimeStamp(), message: "[System] Initializing Agentic AI Research Engine..." }]);
     setCleanTitle(query);
     
     try {
@@ -116,17 +130,17 @@ export default function AgenticDashboard() {
               const data = JSON.parse(dataStr);
               
               if (event === 'progress') {
-                setLogs(prev => [...prev, data.message]);
+                // Lock timestamp instantly on arrival
+                setLogs(prev => [...prev, { time: getTimeStamp(), message: data.message || data }]);
               } else if (event === 'telemetry') {
-                // --- CATCH TELEMETRY ---
                 setTelemetry(data);
               } else if (event === 'complete') {
                 const cleanedReport = data.report.replace(/^(#\s*)?Research Summary:?\s*/i, '').trim();
                 setReport(cleanedReport);
                 saveToHistory(query, mode, cleanedReport);
               } else if (event === 'error') {
-                setLogs(prev => [...prev, `[Fatal Error] ${data.message}`]);
-                setReport(`**Agentic Error:** ${data.message}`);
+                setLogs(prev => [...prev, { time: getTimeStamp(), message: `[Fatal Error] ${data.message || data}` }]);
+                setReport(`**Agentic Error:** ${data.message || data}`);
               }
             } catch (err) {
               console.error("Failed to parse SSE JSON:", err);
@@ -170,7 +184,7 @@ export default function AgenticDashboard() {
   return (
     <div className="flex h-screen bg-slate-950 text-slate-200 font-sans overflow-hidden">
       
-      {/* SIDEBAR WITH NAVIGATION */}
+      {/* SIDEBAR */}
       <aside className="w-80 bg-slate-900 border-r border-slate-800 p-6 flex flex-col relative z-20">
         <div className="flex items-center gap-3 mb-10">
           <BrainCircuit className="w-8 h-8 text-blue-500" />
@@ -213,7 +227,7 @@ export default function AgenticDashboard() {
         <div className="flex-1 overflow-y-auto p-10 pb-40 relative z-10">
           <div className="max-w-4xl mx-auto">
             
-            {!report && !isLoading && (
+            {!report && !isLoading && logs.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full mt-32 text-center animate-in fade-in duration-500">
                 <FileText className="w-16 h-16 text-slate-800 mb-6" />
                 <h2 className="text-3xl font-bold text-white mb-2">Initialize Research</h2>
@@ -221,33 +235,48 @@ export default function AgenticDashboard() {
               </div>
             )}
 
-            {isLoading && (
-              <div className="mt-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-blue-500 blur-md opacity-40 rounded-full"></div>
-                    <Loader2 className="w-6 h-6 text-blue-400 animate-spin relative z-10" />
+            {/* NEW: Collapsible Terminal - Renders if logs exist, regardless of loading state */}
+            {logs.length > 0 && (
+              <div className="mt-8 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {isLoading && (
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-blue-500 blur-md opacity-40 rounded-full"></div>
+                      <Loader2 className="w-6 h-6 text-blue-400 animate-spin relative z-10" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white tracking-tight">Agentic Workflow Active</h3>
                   </div>
-                  <h3 className="text-xl font-bold text-white tracking-tight">Agentic Workflow Active</h3>
-                </div>
+                )}
                 
-                <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
-                  <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex items-center gap-2">
-                    <Terminal className="w-4 h-4 text-slate-500" />
-                    <span className="text-xs font-mono text-slate-400">langgraph-orchestrator.log</span>
+                <div className="bg-slate-950 border border-slate-800 rounded-xl shadow-2xl transition-all duration-300">
+                  <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between rounded-t-xl">
+                    <div className="flex items-center gap-2">
+                      <Terminal className="w-4 h-4 text-slate-500" />
+                      <span className="text-xs font-mono text-slate-400">langgraph-orchestrator.log</span>
+                      {isLoading && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-2" />}
+                    </div>
+                    <button 
+                      onClick={() => setIsLogsMinimized(!isLogsMinimized)}
+                      className="text-slate-500 hover:text-white text-xs px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 transition"
+                    >
+                      {isLogsMinimized ? "Expand Logs" : "Minimize Logs"}
+                    </button>
                   </div>
-                  <div className="p-6 h-80 overflow-y-auto font-mono text-sm flex flex-col gap-2">
-                    {logs.map((log, index) => (
-                      <div 
-                        key={index} 
-                        className={`animate-in fade-in duration-300 ${log.includes('[Fatal Error]') ? 'text-red-400' : log.includes('Cache hit') ? 'text-emerald-400' : 'text-blue-300'}`}
-                      >
-                        <span className="text-slate-600 mr-3">{new Date().toISOString().split('T')[1].slice(0,8)}</span>
-                        {log}
-                      </div>
-                    ))}
-                    <div ref={logsEndRef} />
-                  </div>
+                  
+                  {!isLogsMinimized && (
+                    <div className="p-6 h-72 overflow-y-auto font-mono text-xs md:text-sm flex flex-col gap-2 rounded-b-xl">
+                      {logs.map((log, index) => (
+                        <div 
+                          key={index} 
+                          className={`animate-in fade-in duration-300 ${log.message.includes('[Fatal Error]') ? 'text-red-400' : log.message.includes('Cache hit') ? 'text-emerald-400' : 'text-blue-300'}`}
+                        >
+                          <span className="text-slate-600 mr-3">[{log.time}]</span>
+                          {log.message}
+                        </div>
+                      ))}
+                      <div ref={logsEndRef} />
+                    </div>
+                  )}
                 </div>
               </div>
             )}

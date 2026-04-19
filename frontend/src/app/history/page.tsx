@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Link from 'next/link';
-import { BrainCircuit, LayoutDashboard, Library, Clock, Database, X } from 'lucide-react';
+import { BrainCircuit, LayoutDashboard, Library, Clock, Database, X, Trash2 } from 'lucide-react';
 
 interface HistoryItem {
   id: string;
@@ -18,10 +18,7 @@ export default function HistoryPage() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [selectedReport, setSelectedReport] = useState<HistoryItem | null>(null);
 
-  // Load from local storage when the page mounts
   useEffect(() => {
-    // Wrapping this in a zero-delay timeout pushes the state update out of the 
-    // synchronous render cycle, perfectly satisfying the React linter.
     const timer = setTimeout(() => {
       const saved = localStorage.getItem('agenticHistory');
       if (saved) {
@@ -29,7 +26,6 @@ export default function HistoryPage() {
       }
     }, 0);
 
-    // Cleanup function to prevent memory leaks
     return () => clearTimeout(timer);
   }, []);
 
@@ -40,10 +36,20 @@ export default function HistoryPage() {
     }
   }
 
+  // NEW: Individual delete function
+  const deleteHistoryItem = (e: React.MouseEvent, idToDelete: string) => {
+    e.stopPropagation(); // Prevents the card click event from opening the modal
+    if(confirm("Delete this report from your archive?")) {
+      const updatedHistory = history.filter(item => item.id !== idToDelete);
+      setHistory(updatedHistory);
+      localStorage.setItem('agenticHistory', JSON.stringify(updatedHistory));
+    }
+  };
+
   return (
     <div className="flex h-screen bg-slate-950 text-slate-200 font-sans overflow-hidden">
       
-      {/* SIDEBAR (Identical to main page for seamless navigation) */}
+      {/* SIDEBAR */}
       <aside className="w-80 bg-slate-900 border-r border-slate-800 p-6 flex flex-col relative z-20">
         <div className="flex items-center gap-3 mb-10">
           <BrainCircuit className="w-8 h-8 text-blue-500" />
@@ -94,20 +100,29 @@ export default function HistoryPage() {
               <div 
                 key={item.id} 
                 onClick={() => setSelectedReport(item)}
-                className="bg-slate-900 border border-slate-800 p-6 rounded-2xl cursor-pointer hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-900/20 transition-all group"
+                className="bg-slate-900 border border-slate-800 p-6 rounded-2xl cursor-pointer hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-900/20 transition-all group relative"
               >
-          <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
+                <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
                   <Clock className="w-3 h-3" />
                   <span>{item.date}</span>
                   <span className="ml-auto px-3 py-1 bg-slate-800 text-slate-300 rounded-full font-medium whitespace-nowrap flex items-center justify-center">
                     {item.mode}
                   </span>
+                  
+                  {/* NEW: Delete Button */}
+                  <button 
+                    onClick={(e) => deleteHistoryItem(e, item.id)}
+                    className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors ml-1"
+                    title="Delete report"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
                 <h3 className="text-lg font-bold text-slate-200 group-hover:text-blue-400 transition-colors line-clamp-2">
                   {item.query}
                 </h3>
                 <p className="text-sm text-slate-500 mt-3 line-clamp-3">
-                  {item.report.replace(/[#*]/g, '') /* Strips basic markdown chars for the preview */}
+                  {item.report.replace(/[#*]/g, '')}
                 </p>
               </div>
             ))}
@@ -121,7 +136,6 @@ export default function HistoryPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-10 bg-slate-950/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl max-h-full rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             
-            {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-800 bg-slate-900/50">
               <div>
                 <h3 className="text-xl font-bold text-white line-clamp-1">{selectedReport.query}</h3>
@@ -135,7 +149,6 @@ export default function HistoryPage() {
               </button>
             </div>
 
-            {/* Modal Body (Markdown) */}
             <div className="p-8 overflow-y-auto">
               <div className="prose prose-invert prose-blue max-w-none prose-headings:border-b prose-headings:border-slate-800 prose-headings:pb-2 prose-a:text-blue-400">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>

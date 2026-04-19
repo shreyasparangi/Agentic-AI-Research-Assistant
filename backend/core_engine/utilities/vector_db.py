@@ -15,7 +15,7 @@ from langchain_community.vectorstores import Chroma
 
 # Initialize the embedding model. This converts raw text into mathematical vectors.
 # Initialize the embedding model. This converts raw text into mathematical vectors.
-embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 
 # Define the local persistence directory for the SQLite-based Chroma database
 CHROMA_PATH = "./chroma_db"

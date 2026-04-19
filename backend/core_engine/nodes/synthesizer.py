@@ -31,6 +31,11 @@ GUIDELINES:
 3. Do NOT hallucinate or add outside information that is not supported by the findings.
 4. Include references to the source URLs or Document Names for all data. Use numbered brackets [1], [2], etc., immediately after the claim.
 5. Provide a "References" section at the very bottom of your output listing the sources you used.
+
+CRITICAL CITATION RULES:
+1. NEVER use raw artifact names or search queries in your citations (e.g., do NOT output [Web Search Summary: '...' - 1]).
+2. You must re-number all citations sequentially using standard academic brackets (e.g., [1], [2], [3]).
+3. Ensure the 'References' section at the bottom perfectly maps these clean numbers to their respective URLs.
 """
 
 # --- 2. THE LANGGRAPH NODE ---
