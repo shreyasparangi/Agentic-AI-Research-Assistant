@@ -7,6 +7,8 @@ HTML into a concise, 150-word factual summary before allowing it to enter the La
 State memory. This ensures the system remains fast and within API token limits over multiple loops.
 """
 
+import os
+
 from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -47,8 +49,13 @@ async def execute_search_action(gap: str, query: str) -> str:
     print(f"🔎 [Action: Search] Fetching raw data for query: '{query}'")
     
     # 1. Fire the raw utility tool (The "Hands")
-    # This triggers the Serper API and the concurrent Beautifulsoup HTML scrapers.
-    raw_text = await web_searcher.ainvoke({"query": query})
+    # Select search provider based on SEARCH_PROVIDER env var ('serper' or 'tavily').
+    search_provider = os.getenv("SEARCH_PROVIDER", "serper").lower()
+    if search_provider == "tavily":
+        from core_engine.utilities.tavily_search import tavily_searcher
+        raw_text = await tavily_searcher.ainvoke({"query": query})
+    else:
+        raw_text = await web_searcher.ainvoke({"query": query})
     
     # If the search failed or returned nothing
     if not raw_text or "Error" in raw_text:
