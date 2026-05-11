@@ -13,3 +13,4 @@ uvicorn
 python-multipart
 werkzeug
 typing-extensions
+tavily-python
