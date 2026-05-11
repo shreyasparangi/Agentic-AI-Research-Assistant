@@ -81,6 +81,8 @@ Backend expects:
 ```env
 GEMINI_API_KEY=...
 SERPER_API_KEY=...
+TAVILY_API_KEY=...        # required when SEARCH_PROVIDER=tavily
+SEARCH_PROVIDER=serper    # 'serper' (default) | 'tavily'
 ```
 
 Frontend expects:
