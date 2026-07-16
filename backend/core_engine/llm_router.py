@@ -12,6 +12,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# Accepted values: 'serper' (default) | 'tavily'
 SEARCH_PROVIDER = os.getenv("SEARCH_PROVIDER", "serper")
 
 # Fail-fast validation
