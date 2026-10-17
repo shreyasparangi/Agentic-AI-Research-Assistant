@@ -7,12 +7,12 @@ Enterprise Production Mode: Configured for Gemini 2.5 Flash (Paid Tier).
 import os
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
+from core_engine.utilities.search_config import get_search_provider
 
 # Load environment variables
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-SEARCH_PROVIDER = os.getenv("SEARCH_PROVIDER", "serper")
 
 # Fail-fast validation
 if not GEMINI_API_KEY:
@@ -24,7 +24,7 @@ class LLMRouter:
     """
     
     def __init__(self):
-        self.search_provider = SEARCH_PROVIDER
+        self.search_provider = get_search_provider()
         
         # PRODUCTION ALIAS:
         # Utilizing the blistering speed of Gemini 2.5 Flash across all nodes 

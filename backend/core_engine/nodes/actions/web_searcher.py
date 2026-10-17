@@ -2,8 +2,8 @@
 Web Searcher Action Wrapper
 ===========================
 The primary external data ingestion filter. 
-Prevents "Context Window Collapse" by converting 8,000+ characters of raw Google Search 
-HTML into a concise, 150-word factual summary before allowing it to enter the LangGraph 
+Prevents "Context Window Collapse" by converting retrieved web text
+into a concise factual summary before allowing it to enter the LangGraph
 State memory. This ensures the system remains fast and within API token limits over multiple loops.
 """
 
@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 
 from core_engine.llm_router import LLMRouter
-from core_engine.utilities.google_search import web_searcher
+from core_engine.utilities.web_search import web_searcher
 
 # --- 1. PYDANTIC SCHEMA ---
 class SearchSummaryOutput(BaseModel):
@@ -47,14 +47,14 @@ async def execute_search_action(gap: str, query: str) -> str:
     print(f"🔎 [Action: Search] Fetching raw data for query: '{query}'")
     
     # 1. Fire the raw utility tool (The "Hands")
-    # This triggers the Serper API and the concurrent Beautifulsoup HTML scrapers.
+    # The resolver preserves configured Serper use and otherwise selects Parallel MCP.
     raw_text = await web_searcher.ainvoke({"query": query})
     
     # If the search failed or returned nothing
-    if not raw_text or "Error" in raw_text:
+    if not raw_text or raw_text.startswith(("Error:", "Search API failed")):
         return f"Search failed for '{query}'. Raw error: {raw_text}"
 
-    print(f"🧠 [Action: Search] Reading {len(raw_text)} characters of raw HTML text...")
+    print(f"🧠 [Action: Search] Reading {len(raw_text)} characters of web text...")
 
     # 2. Initialize the Fast Model (The "Filter")
     router = LLMRouter()

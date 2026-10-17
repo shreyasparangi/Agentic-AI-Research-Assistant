@@ -83,6 +83,14 @@ GEMINI_API_KEY=...
 SERPER_API_KEY=...
 ```
 
+`SERPER_API_KEY` is optional for web search. The shared resolver in
+`backend/core_engine/utilities/search_config.py` honors an explicit
+`SEARCH_PROVIDER=parallel|serper|none`; otherwise it preserves a nonblank Serper
+key and defaults to anonymous Parallel Search MCP when no search key is configured.
+`none` disables only the web-search tool. The Parallel provider uses source-bearing
+search excerpts, a 30-second deadline and no Parallel credentials. The targeted
+crawler, arXiv and document-only routing are unchanged.
+
 Frontend expects:
 
 ```env
@@ -366,16 +374,19 @@ Prompt asks for professional academic Markdown with numbered citations and a Ref
 Files:
 
 - `backend/core_engine/nodes/actions/web_searcher.py`
+- `backend/core_engine/utilities/web_search.py`
+- `backend/core_engine/utilities/search_config.py`
+- `backend/core_engine/utilities/parallel_search.py`
 - `backend/core_engine/utilities/google_search.py`
 
 Flow:
 
-1. `execute_search_action(gap, query)` calls utility `web_searcher`.
-2. `web_searcher` calls Serper API.
-3. Scrapes top 3 organic result URLs using `aiohttp`.
-4. Extracts `h1`, `h2`, `h3`, `p`, `li`.
-5. Limits content to 8000 chars per page.
-6. Summarizes raw text through fast model into clean cited summary.
+1. `execute_search_action(gap, query)` calls the provider-resolving `web_searcher`.
+2. The shared resolver honors explicit `SEARCH_PROVIDER`, then configured Serper,
+   otherwise anonymous Parallel Search MCP.
+3. Parallel returns source-bearing excerpts (capped at 24000 characters); Serper
+   retains its existing top-3 page scraping, semantic tags and 8000-char page limit.
+4. The action summarizes web text through the fast model into a cited summary.
 
 `google_search.py` now integrates local SQLite cache:
 

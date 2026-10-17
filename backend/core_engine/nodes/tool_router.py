@@ -82,7 +82,7 @@ HISTORY OF FINDINGS SO FAR:
 {history}
 
 AVAILABLE TOOLS (CHOOSE FROM THESE EXACT NAMES):
-1. 'web_searcher': Use this for general Google searches to find broad topics, news, or external context.
+1. 'web_searcher': Use this for general web searches to find broad topics, news, or external context.
 2. 'web_crawler': Use this if you have a specific URL and need to scrape the text from that specific page.
 3. 'rag_retriever': Use this to query the local Vector Database. Choose this ONLY if the gap requires reading from the user's provided PDF documents or internal academic literature.
 4. 'arxiv_researcher': Use this for academic paper discovery, scientific literature, preprints, and technical research abstracts from arXiv.

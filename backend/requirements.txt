@@ -13,3 +13,5 @@ uvicorn
 python-multipart
 werkzeug
 typing-extensions
+mcp>=1.30,<2
+httpx>=0.28,<1
